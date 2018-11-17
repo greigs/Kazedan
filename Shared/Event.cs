@@ -2,7 +2,7 @@
 
 namespace Kazedan.Construct
 {
-    class Event
+    public class Event
     {
         public long StartTime { get; set; }
         public Action Method { get; set; }

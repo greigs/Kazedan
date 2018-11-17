@@ -1,11 +1,8 @@
 ﻿using System;
-using System.Drawing;
-using Kazedan.Graphics;
-using SlimDX.Direct2D;
 
 namespace Kazedan.Construct
 {
-    class MIDIKeyboard
+    public class MIDIKeyboard
     {
         public int[] KeyPressed { get; }
         public int[] ChannelVolume { get; }

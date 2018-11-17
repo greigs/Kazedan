@@ -1,6 +1,6 @@
 ﻿namespace Kazedan.Construct
 {
-    class Note
+    public class Note
     {
         public int Key { get; set; }
         public int Velocity { get; set; }

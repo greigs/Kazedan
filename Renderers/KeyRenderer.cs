@@ -7,7 +7,7 @@ using SlimDX.Direct2D;
 
 namespace Kazedan.Graphics.Renderer
 {
-    abstract class KeyRenderer
+    public abstract class KeyRenderer
     {
         public abstract void Render(RenderTarget target, int[] KeyPressed);
     }

@@ -2,7 +2,7 @@
 
 namespace Kazedan.Construct
 {
-    class NoteManager
+    public class NoteManager
     {
         public readonly Queue<Event> Backlog = new Queue<Event>();
         public readonly List<Note> Notes = new List<Note>();

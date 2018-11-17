@@ -8,7 +8,7 @@ using Factory = SlimDX.DirectWrite.Factory;
 
 namespace Kazedan.Graphics
 {
-    class GFXResources
+    public class GFXResources
     {
         public static readonly Size Bounds = new Size(1600, 900);
         public static int KeyHeight = 100;

@@ -166,7 +166,7 @@ namespace Kazedan
                     Sequencer.UpdateNotePositions();
                     Sequencer.UpdateRenderer();
                 }
-                Paint(renderTarget);
+                //Paint(renderTarget);
 
                 // Calculate profiling information
                 long tick = Environment.TickCount;
@@ -193,9 +193,12 @@ namespace Kazedan
         public void Paint(RenderTarget target)
         {
             target.BeginDraw();
-            target.Transform = Matrix3x2.Identity;
             // Render scene
-            Sequencer.Render(target);
+            target.Transform = Matrix3x2.Identity;
+            if (Sequencer.RendererManager != null)
+            {
+                Sequencer.RendererManager.Render(target);
+            }
             target.EndDraw();
         }
 

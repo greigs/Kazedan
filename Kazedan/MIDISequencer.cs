@@ -1,20 +1,14 @@
 ﻿using System;
 using System.ComponentModel;
 using System.Diagnostics;
-using System.Drawing;
 using System.Linq;
-using System.Windows.Forms;
-using Kazedan.Graphics;
-using Kazedan.Graphics.Renderer;
+//using Kazedan.Graphics;
 using Sanford.Multimedia.Midi;
-using SlimDX;
-using SlimDX.Direct2D;
-using SlimDX.DirectWrite;
 using Timer = System.Timers.Timer;
 
 namespace Kazedan.Construct
 {
-    class MIDISequencer : IDisposable
+    public class MIDISequencer : IDisposable
     {
         public int Delay { get; set; } = 500;
         public bool ShowDebug { get; set; } = true;
@@ -34,8 +28,10 @@ namespace Kazedan.Construct
 
         public MIDIKeyboard Keyboard { get; set; }
         public NoteManager NoteManager { get; set; }
-        private readonly NoteRenderer[] NoteRenderers = { new FastNoteRenderer(), new FancyNoteRenderer() };
-        private readonly KeyRenderer[] KeyRenderers = { new FastKeyRenderer(), new FancyKeyRenderer() };
+
+        public IRendererManager RendererManager { get; private set; }
+
+        public event EventHandler<AsyncCompletedEventArgs> LoadCompleted;
 
         public MIDISequencer()
         {
@@ -69,9 +65,10 @@ namespace Kazedan.Construct
 
             LoadingStatus = 0;
             // Create handles to MIDI devices
-            outDevice = new OutputDevice(1);    // You might want to change this!
+            outDevice = new OutputDevice(0);    // You might want to change this!
             sequencer = new Sequencer();
             sequence = new Sequence();
+            //  RendererManager = new RendererManagerManager(NoteManager, Keyboard, sequence, sequencer);
             LoadingStatus = -1;
             // Set custom event handlers for sequencer
             sequencer.ChannelMessagePlayed += delegate (object o, ChannelMessageEventArgs args)
@@ -161,16 +158,23 @@ namespace Kazedan.Construct
                 LoadingStatus = -1;
                 if (args.Cancelled)
                 {
-                    MessageBox.Show("The operation was cancelled.", "MIDITrailer - Error", MessageBoxButtons.OK,
-                        MessageBoxIcon.Error);
+                    //MessageBox.Show("The operation was cancelled.", "MIDITrailer - Error", MessageBoxButtons.OK,
+                    //    MessageBoxIcon.Error);
                     return;
                 }
                 sequencer.Sequence = sequence;
+                if (LoadCompleted != null)
+                {
+                    LoadCompleted.Invoke(this, args);
+                }
+                   
             };
             sequence.LoadProgressChanged += delegate (object sender, ProgressChangedEventArgs args)
             {
                 LoadingStatus = args.ProgressPercentage;
             };
+
+
 
         }
 
@@ -231,76 +235,11 @@ namespace Kazedan.Construct
                 sequencer.Stop();
         }
 
-        public void Render(RenderTarget target)
-        {
-            // Fill background depending on render mode
-            if (NoteManager.RenderFancy)
-                target.FillRectangle(GFXResources.BackgroundGradient, new RectangleF(PointF.Empty, target.Size));
-            else
-                target.Clear(Color.Black);
-
-            // Render notes and keyboard display
-            lock (NoteManager.Notes)
-            {
-                if (NoteManager.RenderFancy)
-                    NoteRenderers[1].Render(target, NoteManager.Notes, Keyboard);
-                else
-                    NoteRenderers[0].Render(target, NoteManager.Notes, Keyboard);
-            }
-            lock (Keyboard.KeyPressed)
-            {
-                if (NoteManager.RenderFancy)
-                    KeyRenderers[1].Render(target, Keyboard.KeyPressed);
-                else
-                    KeyRenderers[0].Render(target, Keyboard.KeyPressed);
-            }
-
-            // Draw time progress bar
-            if (sequence?.GetLength() > 0)
-            {
-                float percentComplete = 1f * sequencer.Position / sequence.GetLength();
-                target.FillRectangle(GFXResources.DefaultBrushes[5],
-                    new RectangleF(GFXResources.ProgressBarBounds.X, GFXResources.ProgressBarBounds.Y, GFXResources.ProgressBarBounds.Width * percentComplete, GFXResources.ProgressBarBounds.Height));
-                target.DrawRectangle(GFXResources.DefaultBrushes[2], GFXResources.ProgressBarBounds, .8f);
-            }
-
-            // Render debug information
-            string[] debug;
-            string usage = Application.ProductName + " " + Application.ProductVersion + " (c) " + Application.CompanyName;
-            if (ShowDebug)
-            {
-                debug = new[]
-                {
-                    usage,
-                    "      file: " + MIDIFile,
-                    "note_count: " + NoteManager.Notes.Count,
-                    "  frames/s: " + (Kazedan.Elapsed == 0 ? "NaN" : 1000 / Kazedan.Elapsed + "") +" fps",
-                    "  renderer: " + (NoteManager.RenderFancy ? "fancy" : NoteManager.UserEnabledFancy ? "forced-fast" : "fast"),
-                    "  seq_tick: " + (sequence == null ? "? / ?" : $"{sequencer.Position} / {sequence.GetLength()}"),
-                    "     delay: " + Delay + "ms",
-                    "       kbd: " + GFXResources.NoteCount + " key(s) +" + GFXResources.NoteOffset + " offset",
-                    "   stopped: " + Stopped
-                };
-
-            }
-            else
-            {
-                debug = new[] { usage };
-            }
-            string debugText = debug.Aggregate("", (current, ss) => current + ss + '\n');
-            target.DrawText(debugText, GFXResources.DebugFormat, GFXResources.DebugRectangle, GFXResources.DefaultBrushes[0], DrawTextOptions.None,
-                MeasuringMethod.Natural);
-
-            // Render large title text
-            if (LoadingStatus == 0)
-                target.DrawText("INITIALIZING MIDI DEVICES", GFXResources.HugeFormat, GFXResources.FullRectangle, GFXResources.DefaultBrushes[0], DrawTextOptions.None, MeasuringMethod.Natural);
-            else if (LoadingStatus > 0 && LoadingStatus < 100)
-                target.DrawText("LOADING " + LoadingStatus + "%", GFXResources.HugeFormat, GFXResources.FullRectangle, GFXResources.DefaultBrushes[0], DrawTextOptions.None, MeasuringMethod.Natural);
-        }
+        
 
         public void UpdateNotePositions()
         {
-            int keyboardY = (int)GFXResources.KeyboardY;
+            int keyboardY = 100;
             long now = Stopwatch.ElapsedMilliseconds;
             float speed = 1.0f * keyboardY / Delay;
             // Update all note positions
@@ -346,5 +285,6 @@ namespace Kazedan.Construct
         {
             return (nLowerPart & 0x7F) | ((nHigherPart & 0x7F) << 7);
         }
+
     }
 }

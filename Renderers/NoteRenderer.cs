@@ -8,7 +8,7 @@ using SlimDX.Direct2D;
 
 namespace Kazedan.Graphics.Renderer
 {
-    abstract class NoteRenderer
+    public abstract class NoteRenderer
     {
         public abstract void Render(RenderTarget target, List<Note> notes, MIDIKeyboard keyboard);
     }
